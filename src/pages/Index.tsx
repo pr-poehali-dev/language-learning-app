@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 
 type Word = {
@@ -15,21 +17,22 @@ type Category = {
   name: string;
   icon: string;
   gradient: string;
+  level: 'beginner' | 'intermediate' | 'advanced';
 };
 
 const categories: Category[] = [
-  { id: 'animals', name: 'Животные', icon: 'Cat', gradient: 'from-purple-500 to-pink-500' },
-  { id: 'food', name: 'Еда', icon: 'Apple', gradient: 'from-orange-500 to-red-500' },
-  { id: 'travel', name: 'Путешествия', icon: 'Plane', gradient: 'from-blue-500 to-cyan-500' },
-  { id: 'tech', name: 'Технологии', icon: 'Laptop', gradient: 'from-indigo-500 to-purple-500' },
-  { id: 'home', name: 'Дом', icon: 'Home', gradient: 'from-green-500 to-emerald-500' },
-  { id: 'nature', name: 'Природа', icon: 'Trees', gradient: 'from-lime-500 to-green-500' },
-  { id: 'body', name: 'Тело', icon: 'User', gradient: 'from-rose-500 to-pink-500' },
-  { id: 'clothes', name: 'Одежда', icon: 'Shirt', gradient: 'from-violet-500 to-purple-500' },
-  { id: 'sport', name: 'Спорт', icon: 'Dumbbell', gradient: 'from-red-500 to-orange-500' },
-  { id: 'music', name: 'Музыка', icon: 'Music', gradient: 'from-fuchsia-500 to-pink-500' },
-  { id: 'school', name: 'Школа', icon: 'BookOpen', gradient: 'from-sky-500 to-blue-500' },
-  { id: 'time', name: 'Время', icon: 'Clock', gradient: 'from-amber-500 to-yellow-500' },
+  { id: 'animals', name: 'Животные', icon: 'Cat', gradient: 'from-purple-500 to-pink-500', level: 'beginner' },
+  { id: 'food', name: 'Еда', icon: 'Apple', gradient: 'from-orange-500 to-red-500', level: 'beginner' },
+  { id: 'home', name: 'Дом', icon: 'Home', gradient: 'from-green-500 to-emerald-500', level: 'beginner' },
+  { id: 'body', name: 'Тело', icon: 'User', gradient: 'from-rose-500 to-pink-500', level: 'beginner' },
+  { id: 'travel', name: 'Путешествия', icon: 'Plane', gradient: 'from-blue-500 to-cyan-500', level: 'intermediate' },
+  { id: 'clothes', name: 'Одежда', icon: 'Shirt', gradient: 'from-violet-500 to-purple-500', level: 'intermediate' },
+  { id: 'nature', name: 'Природа', icon: 'Trees', gradient: 'from-lime-500 to-green-500', level: 'intermediate' },
+  { id: 'time', name: 'Время', icon: 'Clock', gradient: 'from-amber-500 to-yellow-500', level: 'intermediate' },
+  { id: 'tech', name: 'Технологии', icon: 'Laptop', gradient: 'from-indigo-500 to-purple-500', level: 'advanced' },
+  { id: 'sport', name: 'Спорт', icon: 'Dumbbell', gradient: 'from-red-500 to-orange-500', level: 'advanced' },
+  { id: 'music', name: 'Музыка', icon: 'Music', gradient: 'from-fuchsia-500 to-pink-500', level: 'advanced' },
+  { id: 'school', name: 'Школа', icon: 'BookOpen', gradient: 'from-sky-500 to-blue-500', level: 'advanced' },
 ];
 
 const wordsData: Record<string, Word[]> = {
@@ -165,6 +168,20 @@ export default function Index() {
   const [testAnswers, setTestAnswers] = useState<boolean[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userStats, setUserStats] = useState({ correct: 0, total: 0 });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
+
+  const levelLabels = {
+    beginner: 'Начальный',
+    intermediate: 'Средний',
+    advanced: 'Продвинутый'
+  };
+
+  const filteredCategories = categories.filter(cat => {
+    const matchesSearch = cat.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesLevel = selectedLevel === 'all' || cat.level === selectedLevel;
+    return matchesSearch && matchesLevel;
+  });
 
   const selectCategory = (categoryId: string) => {
     setSelectedCategory(categoryId);
@@ -225,29 +242,88 @@ export default function Index() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12 animate-fade-in">
+          <div className="text-center mb-8 animate-fade-in">
             <h1 className="text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
               Учи Слова
             </h1>
             <p className="text-xl text-gray-600">Изучай языки легко и весело</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {categories.map((cat, index) => (
-              <Card
-                key={cat.id}
-                className="p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-2 hover:shadow-2xl animate-scale-in"
-                style={{ animationDelay: `${index * 100}ms` }}
-                onClick={() => selectCategory(cat.id)}
+          <div className="mb-8 space-y-4">
+            <div className="relative max-w-md mx-auto">
+              <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <Input
+                type="text"
+                placeholder="Поиск категорий..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-12 text-lg"
+              />
+            </div>
+
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <Badge
+                variant={selectedLevel === 'all' ? 'default' : 'outline'}
+                className="cursor-pointer px-4 py-2 text-sm"
+                onClick={() => setSelectedLevel('all')}
               >
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center mb-4 mx-auto`}>
-                  <Icon name={cat.icon as any} className="text-white" size={32} />
-                </div>
-                <h3 className="text-xl font-bold text-center">{cat.name}</h3>
-                <p className="text-center text-gray-500 mt-2">{wordsData[cat.id].length} слов</p>
-              </Card>
-            ))}
+                Все уровни
+              </Badge>
+              <Badge
+                variant={selectedLevel === 'beginner' ? 'default' : 'outline'}
+                className="cursor-pointer px-4 py-2 text-sm bg-green-500 hover:bg-green-600"
+                onClick={() => setSelectedLevel('beginner')}
+              >
+                🟢 Начальный
+              </Badge>
+              <Badge
+                variant={selectedLevel === 'intermediate' ? 'default' : 'outline'}
+                className="cursor-pointer px-4 py-2 text-sm bg-yellow-500 hover:bg-yellow-600"
+                onClick={() => setSelectedLevel('intermediate')}
+              >
+                🟡 Средний
+              </Badge>
+              <Badge
+                variant={selectedLevel === 'advanced' ? 'default' : 'outline'}
+                className="cursor-pointer px-4 py-2 text-sm bg-red-500 hover:bg-red-600"
+                onClick={() => setSelectedLevel('advanced')}
+              >
+                🔴 Продвинутый
+              </Badge>
+            </div>
           </div>
+
+          {filteredCategories.length === 0 ? (
+            <div className="text-center py-12">
+              <Icon name="SearchX" className="mx-auto text-gray-400 mb-4" size={48} />
+              <p className="text-xl text-gray-600">Категории не найдены</p>
+              <p className="text-gray-500 mt-2">Попробуйте изменить фильтры</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+              {filteredCategories.map((cat, index) => (
+                <Card
+                  key={cat.id}
+                  className="p-6 cursor-pointer hover:scale-105 transition-all duration-300 border-2 hover:shadow-2xl animate-scale-in relative"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                  onClick={() => selectCategory(cat.id)}
+                >
+                  <Badge className={`absolute top-3 right-3 ${
+                    cat.level === 'beginner' ? 'bg-green-500' : 
+                    cat.level === 'intermediate' ? 'bg-yellow-500' : 
+                    'bg-red-500'
+                  }`}>
+                    {levelLabels[cat.level]}
+                  </Badge>
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${cat.gradient} flex items-center justify-center mb-4 mx-auto`}>
+                    <Icon name={cat.icon as any} className="text-white" size={32} />
+                  </div>
+                  <h3 className="text-xl font-bold text-center">{cat.name}</h3>
+                  <p className="text-center text-gray-500 mt-2">{wordsData[cat.id].length} слов</p>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {userStats.total > 0 && (
             <Card className="p-6 max-w-md mx-auto bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-200">
