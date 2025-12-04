@@ -180,42 +180,8 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
   const [showAchievement, setShowAchievement] = useState<Achievement | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-
-  const playSound = (type: 'correct' | 'wrong' | 'achievement') => {
-    if (!soundEnabled) return;
-    
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    if (type === 'correct') {
-      oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    } else if (type === 'wrong') {
-      oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.2);
-    } else if (type === 'achievement') {
-      oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.15);
-      oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.3);
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.5);
-    }
-  };
+  const [leaderboard, setLeaderboard] = useState<Array<{name: string, score: number, date: string}>>([]);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const achievements: Achievement[] = [
     { id: 'first', name: 'Первые шаги', description: 'Ответь правильно на 1 вопрос', icon: 'Star', requirement: 1, unlocked: userStats.correct >= 1 },
@@ -277,7 +243,6 @@ export default function Index() {
 
     let newStats = userStats;
     if (isCorrect) {
-      playSound('correct');
       newStats = { correct: userStats.correct + 1, total: userStats.total + 1 };
       setUserStats(newStats);
       
@@ -286,13 +251,11 @@ export default function Index() {
       );
       if (justUnlocked) {
         setTimeout(() => {
-          playSound('achievement');
           setShowAchievement(justUnlocked);
           setTimeout(() => setShowAchievement(null), 4000);
         }, 500);
       }
     } else {
-      playSound('wrong');
       newStats = { ...userStats, total: userStats.total + 1 };
       setUserStats(newStats);
     }
@@ -314,11 +277,7 @@ export default function Index() {
 
   if (screen === 'home') {
     return (
-      <div className={`min-h-screen transition-colors duration-300 p-6 ${
-        darkMode 
-          ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900' 
-          : 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50'
-      }`}>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
         <div className="max-w-6xl mx-auto">
           {showAchievement && (
             <div className="fixed top-6 right-6 z-50 animate-slide-in-right">
@@ -339,31 +298,12 @@ export default function Index() {
               </Card>
             </div>
           )}
-
-          <div className="fixed top-6 left-6 z-40 flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setDarkMode(!darkMode)}
-              className={darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : ''}
-            >
-              <Icon name={darkMode ? 'Sun' : 'Moon'} size={20} />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : ''}
-            >
-              <Icon name={soundEnabled ? 'Volume2' : 'VolumeX'} size={20} />
-            </Button>
-          </div>
           
           <div className="text-center mb-8 animate-fade-in">
-            <h1 className={`text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 ${darkMode ? 'opacity-90' : ''}`}>
+            <h1 className="text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
               Учи Слова
             </h1>
-            <p className={`text-xl ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Изучай языки легко и весело</p>
+            <p className="text-xl text-gray-600">Изучай языки легко и весело</p>
           </div>
 
           <div className="mb-8 space-y-4">
@@ -476,40 +416,86 @@ export default function Index() {
                 )}
               </Card>
 
-              <Card className="p-6 max-w-4xl mx-auto">
-                <div className="flex items-center gap-2 mb-4">
-                  <Icon name="Award" className="text-yellow-500" size={24} />
-                  <h3 className="font-bold text-lg">Достижения</h3>
-                  <Badge variant="secondary">{unlockedAchievements.length}/{achievements.length}</Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {achievements.map((achievement) => (
-                    <Card
-                      key={achievement.id}
-                      className={`p-4 text-center transition-all ${
-                        achievement.unlocked
-                          ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300 border-2'
-                          : 'bg-gray-50 opacity-50'
-                      }`}
-                    >
-                      <div className={`w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center ${
-                        achievement.unlocked
-                          ? 'bg-gradient-to-br from-yellow-400 to-orange-400'
-                          : 'bg-gray-300'
-                      }`}>
-                        <Icon
-                          name={achievement.icon as any}
-                          className="text-white"
-                          size={32}
-                        />
-                      </div>
-                      <h4 className="font-bold text-sm mb-1">{achievement.name}</h4>
-                      <p className="text-xs text-gray-600">{achievement.description}</p>
-                    </Card>
-                  ))}
-                </div>
-              </Card>
+              <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                <Card className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Icon name="Award" className="text-yellow-500" size={24} />
+                    <h3 className="font-bold text-lg">Достижения</h3>
+                    <Badge variant="secondary">{unlockedAchievements.length}/{achievements.length}</Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {achievements.map((achievement) => (
+                      <Card
+                        key={achievement.id}
+                        className={`p-3 text-center transition-all ${
+                          achievement.unlocked
+                            ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300 border-2'
+                            : 'bg-gray-50 opacity-50'
+                        }`}
+                      >
+                        <div className={`w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center ${
+                          achievement.unlocked
+                            ? 'bg-gradient-to-br from-yellow-400 to-orange-400'
+                            : 'bg-gray-300'
+                        }`}>
+                          <Icon
+                            name={achievement.icon as any}
+                            className="text-white"
+                            size={24}
+                          />
+                        </div>
+                        <h4 className="font-bold text-xs mb-1">{achievement.name}</h4>
+                        <p className="text-xs text-gray-600">{achievement.description}</p>
+                      </Card>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Icon name="Crown" className="text-purple-500" size={24} />
+                    <h3 className="font-bold text-lg">Топ результатов</h3>
+                  </div>
+                  
+                  {leaderboard.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Icon name="Users" className="mx-auto mb-2 text-gray-400" size={32} />
+                      <p className="text-sm">Пройди тест, чтобы попасть в таблицу!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {leaderboard.slice(0, 5).map((entry, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center justify-between p-3 rounded-lg ${
+                            index === 0 ? 'bg-gradient-to-r from-yellow-100 to-orange-100' :
+                            index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-200' :
+                            index === 2 ? 'bg-gradient-to-r from-amber-100 to-yellow-100' :
+                            'bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                              index === 0 ? 'bg-yellow-500 text-white' :
+                              index === 1 ? 'bg-gray-400 text-white' :
+                              index === 2 ? 'bg-amber-600 text-white' :
+                              'bg-purple-200 text-purple-700'
+                            }`}>
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm">{entry.name}</p>
+                              <p className="text-xs text-gray-500">{entry.date}</p>
+                            </div>
+                          </div>
+                          <div className="font-bold text-purple-600">{entry.score}%</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </div>
             </div>
           )}
         </div>
@@ -523,14 +509,10 @@ export default function Index() {
     const category = categories.find(c => c.id === selectedCategory);
 
     return (
-      <div className={`min-h-screen transition-colors duration-300 p-6 ${
-        darkMode 
-          ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900' 
-          : 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50'
-      }`}>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <Button variant="outline" onClick={goHome} className={`gap-2 ${darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : ''}`}>
+            <Button variant="outline" onClick={goHome} className="gap-2">
               <Icon name="ArrowLeft" size={20} />
               Назад
             </Button>
@@ -538,12 +520,12 @@ export default function Index() {
               <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${category?.gradient} flex items-center justify-center`}>
                 <Icon name={category?.icon as any} className="text-white" size={16} />
               </div>
-              <span className={`font-semibold ${darkMode ? 'text-white' : ''}`}>{category?.name}</span>
+              <span className="font-semibold">{category?.name}</span>
             </div>
           </div>
 
           <div className="mb-6">
-            <div className={`flex items-center justify-between text-sm mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
               <span>Слово {currentWordIndex + 1} из {words.length}</span>
               <span>{Math.round(((currentWordIndex + 1) / words.length) * 100)}%</span>
             </div>
@@ -551,11 +533,7 @@ export default function Index() {
           </div>
 
           <Card 
-            className={`p-12 mb-8 cursor-pointer hover:shadow-xl transition-all duration-300 border-2 ${
-              darkMode 
-                ? 'bg-gradient-to-br from-gray-800 to-purple-900 border-gray-700' 
-                : 'bg-gradient-to-br from-white to-purple-50'
-            }`}
+            className="p-12 mb-8 cursor-pointer hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-purple-50 border-2"
             onClick={() => setShowTranslation(!showTranslation)}
           >
             <div className="text-center">
@@ -563,7 +541,7 @@ export default function Index() {
                 {currentWord.word}
               </div>
               {showTranslation ? (
-                <div className={`text-4xl animate-fade-in ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
+                <div className="text-4xl text-gray-600 animate-fade-in">
                   {currentWord.translation}
                 </div>
               ) : (
@@ -618,18 +596,14 @@ export default function Index() {
     const options = [currentWord, ...wrongOptions].sort(() => Math.random() - 0.5);
 
     return (
-      <div className={`min-h-screen transition-colors duration-300 p-6 ${
-        darkMode 
-          ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900' 
-          : 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50'
-      }`}>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <Button variant="outline" onClick={() => setScreen('study')} className={`gap-2 ${darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : ''}`}>
+            <Button variant="outline" onClick={() => setScreen('study')} className="gap-2">
               <Icon name="X" size={20} />
               Отмена
             </Button>
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full shadow ${darkMode ? 'bg-gray-800 text-white' : 'bg-white'}`}>
+            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow">
               <Icon name="Target" size={20} className="text-blue-500" />
               <span className="font-semibold">{currentQuestion + 1}/{words.length}</span>
             </div>
@@ -639,9 +613,9 @@ export default function Index() {
             <Progress value={((currentQuestion + 1) / words.length) * 100} className="h-2" />
           </div>
 
-          <Card className={`p-12 mb-8 border-2 ${darkMode ? 'bg-gradient-to-br from-gray-800 to-blue-900 border-gray-700' : 'bg-gradient-to-br from-white to-blue-50'}`}>
+          <Card className="p-12 mb-8 bg-gradient-to-br from-white to-blue-50 border-2">
             <div className="text-center">
-              <p className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Выбери правильный перевод:</p>
+              <p className="text-gray-600 mb-4">Выбери правильный перевод:</p>
               <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                 {currentWord.word}
               </div>
@@ -654,7 +628,7 @@ export default function Index() {
                 key={index}
                 onClick={() => answerQuestion(option.translation === currentWord.translation)}
                 variant="outline"
-                className={`h-16 text-xl hover:scale-105 transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent ${darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gradient-to-r' : ''}`}
+                className="h-16 text-xl hover:scale-105 transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent"
               >
                 {option.translation}
               </Button>
@@ -665,12 +639,53 @@ export default function Index() {
     );
   }
 
+  const shareResult = () => {
+    const correctCount = testAnswers.filter(a => a).length;
+    const percentage = Math.round((correctCount / testAnswers.length) * 100);
+    const category = categories.find(c => c.id === selectedCategory);
+    const text = `🎓 Я изучил категорию "${category?.name}" в приложении "Учи Слова"!\n\n📊 Результат: ${percentage}% (${correctCount}/${testAnswers.length})\n🏆 Всего правильных ответов: ${userStats.correct}\n\n✨ Попробуй и ты!`;
+    
+    const newEntry = {
+      name: category?.name || 'Категория',
+      score: percentage,
+      date: new Date().toLocaleDateString('ru-RU')
+    };
+    
+    const updatedLeaderboard = [...leaderboard, newEntry]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+    setLeaderboard(updatedLeaderboard);
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Мой результат в Учи Слова',
+        text: text
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(text);
+      setShowShareModal(true);
+      setTimeout(() => setShowShareModal(false), 3000);
+    }
+  };
+
   if (screen === 'results') {
     const correctCount = testAnswers.filter(a => a).length;
     const percentage = Math.round((correctCount / testAnswers.length) * 100);
+    const category = categories.find(c => c.id === selectedCategory);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6 flex items-center justify-center">
+        {showShareModal && (
+          <div className="fixed top-6 right-6 z-50 animate-slide-in-right">
+            <Card className="p-4 bg-green-100 border-2 border-green-400 shadow-xl">
+              <div className="flex items-center gap-2">
+                <Icon name="Check" className="text-green-600" size={20} />
+                <span className="font-semibold text-green-800">Скопировано в буфер!</span>
+              </div>
+            </Card>
+          </div>
+        )}
+        
         <div className="max-w-lg w-full">
           <Card className="p-12 text-center bg-gradient-to-br from-white to-purple-50 border-2">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-6 animate-scale-in">
@@ -682,11 +697,34 @@ export default function Index() {
             <div className="text-7xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
               {percentage}%
             </div>
-            <p className="text-xl text-gray-600 mb-8">
+            <p className="text-xl text-gray-600 mb-4">
               Правильных ответов: {correctCount} из {testAnswers.length}
             </p>
+            <p className="text-sm text-gray-500 mb-8">
+              Категория: {category?.name}
+            </p>
             <Progress value={percentage} className="h-4 mb-8" />
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={shareResult}
+                  className="h-14 text-base bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                >
+                  <Icon name="Share2" size={20} />
+                  Поделиться
+                </Button>
+                <Button
+                  onClick={() => {
+                    shareResult();
+                    goHome();
+                  }}
+                  variant="outline"
+                  className="h-14 text-base"
+                >
+                  <Icon name="Plus" size={20} />
+                  В таблицу
+                </Button>
+              </div>
               <Button
                 onClick={() => setScreen('study')}
                 className="h-14 text-lg bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
