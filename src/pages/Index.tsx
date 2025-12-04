@@ -180,6 +180,42 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
   const [showAchievement, setShowAchievement] = useState<Achievement | null>(null);
+  const [darkMode, setDarkMode] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const playSound = (type: 'correct' | 'wrong' | 'achievement') => {
+    if (!soundEnabled) return;
+    
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    if (type === 'correct') {
+      oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } else if (type === 'wrong') {
+      oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } else if (type === 'achievement') {
+      oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.15);
+      oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.3);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    }
+  };
 
   const achievements: Achievement[] = [
     { id: 'first', name: 'Первые шаги', description: 'Ответь правильно на 1 вопрос', icon: 'Star', requirement: 1, unlocked: userStats.correct >= 1 },
@@ -241,6 +277,7 @@ export default function Index() {
 
     let newStats = userStats;
     if (isCorrect) {
+      playSound('correct');
       newStats = { correct: userStats.correct + 1, total: userStats.total + 1 };
       setUserStats(newStats);
       
@@ -249,11 +286,13 @@ export default function Index() {
       );
       if (justUnlocked) {
         setTimeout(() => {
+          playSound('achievement');
           setShowAchievement(justUnlocked);
           setTimeout(() => setShowAchievement(null), 4000);
         }, 500);
       }
     } else {
+      playSound('wrong');
       newStats = { ...userStats, total: userStats.total + 1 };
       setUserStats(newStats);
     }
@@ -275,7 +314,11 @@ export default function Index() {
 
   if (screen === 'home') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
+      <div className={`min-h-screen transition-colors duration-300 p-6 ${
+        darkMode 
+          ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900' 
+          : 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50'
+      }`}>
         <div className="max-w-6xl mx-auto">
           {showAchievement && (
             <div className="fixed top-6 right-6 z-50 animate-slide-in-right">
@@ -296,12 +339,31 @@ export default function Index() {
               </Card>
             </div>
           )}
+
+          <div className="fixed top-6 left-6 z-40 flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setDarkMode(!darkMode)}
+              className={darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : ''}
+            >
+              <Icon name={darkMode ? 'Sun' : 'Moon'} size={20} />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : ''}
+            >
+              <Icon name={soundEnabled ? 'Volume2' : 'VolumeX'} size={20} />
+            </Button>
+          </div>
           
           <div className="text-center mb-8 animate-fade-in">
-            <h1 className="text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            <h1 className={`text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4 ${darkMode ? 'opacity-90' : ''}`}>
               Учи Слова
             </h1>
-            <p className="text-xl text-gray-600">Изучай языки легко и весело</p>
+            <p className={`text-xl ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Изучай языки легко и весело</p>
           </div>
 
           <div className="mb-8 space-y-4">
@@ -461,10 +523,14 @@ export default function Index() {
     const category = categories.find(c => c.id === selectedCategory);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
+      <div className={`min-h-screen transition-colors duration-300 p-6 ${
+        darkMode 
+          ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900' 
+          : 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50'
+      }`}>
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <Button variant="outline" onClick={goHome} className="gap-2">
+            <Button variant="outline" onClick={goHome} className={`gap-2 ${darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : ''}`}>
               <Icon name="ArrowLeft" size={20} />
               Назад
             </Button>
@@ -472,12 +538,12 @@ export default function Index() {
               <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${category?.gradient} flex items-center justify-center`}>
                 <Icon name={category?.icon as any} className="text-white" size={16} />
               </div>
-              <span className="font-semibold">{category?.name}</span>
+              <span className={`font-semibold ${darkMode ? 'text-white' : ''}`}>{category?.name}</span>
             </div>
           </div>
 
           <div className="mb-6">
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+            <div className={`flex items-center justify-between text-sm mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               <span>Слово {currentWordIndex + 1} из {words.length}</span>
               <span>{Math.round(((currentWordIndex + 1) / words.length) * 100)}%</span>
             </div>
@@ -485,7 +551,11 @@ export default function Index() {
           </div>
 
           <Card 
-            className="p-12 mb-8 cursor-pointer hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-purple-50 border-2"
+            className={`p-12 mb-8 cursor-pointer hover:shadow-xl transition-all duration-300 border-2 ${
+              darkMode 
+                ? 'bg-gradient-to-br from-gray-800 to-purple-900 border-gray-700' 
+                : 'bg-gradient-to-br from-white to-purple-50'
+            }`}
             onClick={() => setShowTranslation(!showTranslation)}
           >
             <div className="text-center">
@@ -493,7 +563,7 @@ export default function Index() {
                 {currentWord.word}
               </div>
               {showTranslation ? (
-                <div className="text-4xl text-gray-600 animate-fade-in">
+                <div className={`text-4xl animate-fade-in ${darkMode ? 'text-gray-200' : 'text-gray-600'}`}>
                   {currentWord.translation}
                 </div>
               ) : (
@@ -548,14 +618,18 @@ export default function Index() {
     const options = [currentWord, ...wrongOptions].sort(() => Math.random() - 0.5);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
+      <div className={`min-h-screen transition-colors duration-300 p-6 ${
+        darkMode 
+          ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900' 
+          : 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50'
+      }`}>
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-8">
-            <Button variant="outline" onClick={() => setScreen('study')} className="gap-2">
+            <Button variant="outline" onClick={() => setScreen('study')} className={`gap-2 ${darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700' : ''}`}>
               <Icon name="X" size={20} />
               Отмена
             </Button>
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow">
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-full shadow ${darkMode ? 'bg-gray-800 text-white' : 'bg-white'}`}>
               <Icon name="Target" size={20} className="text-blue-500" />
               <span className="font-semibold">{currentQuestion + 1}/{words.length}</span>
             </div>
@@ -565,9 +639,9 @@ export default function Index() {
             <Progress value={((currentQuestion + 1) / words.length) * 100} className="h-2" />
           </div>
 
-          <Card className="p-12 mb-8 bg-gradient-to-br from-white to-blue-50 border-2">
+          <Card className={`p-12 mb-8 border-2 ${darkMode ? 'bg-gradient-to-br from-gray-800 to-blue-900 border-gray-700' : 'bg-gradient-to-br from-white to-blue-50'}`}>
             <div className="text-center">
-              <p className="text-gray-600 mb-4">Выбери правильный перевод:</p>
+              <p className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Выбери правильный перевод:</p>
               <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                 {currentWord.word}
               </div>
@@ -580,7 +654,7 @@ export default function Index() {
                 key={index}
                 onClick={() => answerQuestion(option.translation === currentWord.translation)}
                 variant="outline"
-                className="h-16 text-xl hover:scale-105 transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent"
+                className={`h-16 text-xl hover:scale-105 transition-all duration-200 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent ${darkMode ? 'bg-gray-800 border-gray-700 text-white hover:bg-gradient-to-r' : ''}`}
               >
                 {option.translation}
               </Button>
