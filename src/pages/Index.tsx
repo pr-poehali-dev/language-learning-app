@@ -180,8 +180,6 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
   const [showAchievement, setShowAchievement] = useState<Achievement | null>(null);
-  const [leaderboard, setLeaderboard] = useState<Array<{name: string, score: number, date: string}>>([]);
-  const [showShareModal, setShowShareModal] = useState(false);
 
   const achievements: Achievement[] = [
     { id: 'first', name: 'Первые шаги', description: 'Ответь правильно на 1 вопрос', icon: 'Star', requirement: 1, unlocked: userStats.correct >= 1 },
@@ -416,86 +414,40 @@ export default function Index() {
                 )}
               </Card>
 
-              <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                <Card className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Icon name="Award" className="text-yellow-500" size={24} />
-                    <h3 className="font-bold text-lg">Достижения</h3>
-                    <Badge variant="secondary">{unlockedAchievements.length}/{achievements.length}</Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    {achievements.map((achievement) => (
-                      <Card
-                        key={achievement.id}
-                        className={`p-3 text-center transition-all ${
-                          achievement.unlocked
-                            ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300 border-2'
-                            : 'bg-gray-50 opacity-50'
-                        }`}
-                      >
-                        <div className={`w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center ${
-                          achievement.unlocked
-                            ? 'bg-gradient-to-br from-yellow-400 to-orange-400'
-                            : 'bg-gray-300'
-                        }`}>
-                          <Icon
-                            name={achievement.icon as any}
-                            className="text-white"
-                            size={24}
-                          />
-                        </div>
-                        <h4 className="font-bold text-xs mb-1">{achievement.name}</h4>
-                        <p className="text-xs text-gray-600">{achievement.description}</p>
-                      </Card>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Icon name="Crown" className="text-purple-500" size={24} />
-                    <h3 className="font-bold text-lg">Топ результатов</h3>
-                  </div>
-                  
-                  {leaderboard.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Icon name="Users" className="mx-auto mb-2 text-gray-400" size={32} />
-                      <p className="text-sm">Пройди тест, чтобы попасть в таблицу!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {leaderboard.slice(0, 5).map((entry, index) => (
-                        <div
-                          key={index}
-                          className={`flex items-center justify-between p-3 rounded-lg ${
-                            index === 0 ? 'bg-gradient-to-r from-yellow-100 to-orange-100' :
-                            index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-200' :
-                            index === 2 ? 'bg-gradient-to-r from-amber-100 to-yellow-100' :
-                            'bg-gray-50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                              index === 0 ? 'bg-yellow-500 text-white' :
-                              index === 1 ? 'bg-gray-400 text-white' :
-                              index === 2 ? 'bg-amber-600 text-white' :
-                              'bg-purple-200 text-purple-700'
-                            }`}>
-                              {index + 1}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-sm">{entry.name}</p>
-                              <p className="text-xs text-gray-500">{entry.date}</p>
-                            </div>
-                          </div>
-                          <div className="font-bold text-purple-600">{entry.score}%</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Card>
-              </div>
+              <Card className="p-6 max-w-4xl mx-auto">
+                <div className="flex items-center gap-2 mb-4">
+                  <Icon name="Award" className="text-yellow-500" size={24} />
+                  <h3 className="font-bold text-lg">Достижения</h3>
+                  <Badge variant="secondary">{unlockedAchievements.length}/{achievements.length}</Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {achievements.map((achievement) => (
+                    <Card
+                      key={achievement.id}
+                      className={`p-4 text-center transition-all ${
+                        achievement.unlocked
+                          ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300 border-2'
+                          : 'bg-gray-50 opacity-50'
+                      }`}
+                    >
+                      <div className={`w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center ${
+                        achievement.unlocked
+                          ? 'bg-gradient-to-br from-yellow-400 to-orange-400'
+                          : 'bg-gray-300'
+                      }`}>
+                        <Icon
+                          name={achievement.icon as any}
+                          className="text-white"
+                          size={32}
+                        />
+                      </div>
+                      <h4 className="font-bold text-sm mb-1">{achievement.name}</h4>
+                      <p className="text-xs text-gray-600">{achievement.description}</p>
+                    </Card>
+                  ))}
+                </div>
+              </Card>
             </div>
           )}
         </div>
@@ -639,53 +591,12 @@ export default function Index() {
     );
   }
 
-  const shareResult = () => {
-    const correctCount = testAnswers.filter(a => a).length;
-    const percentage = Math.round((correctCount / testAnswers.length) * 100);
-    const category = categories.find(c => c.id === selectedCategory);
-    const text = `🎓 Я изучил категорию "${category?.name}" в приложении "Учи Слова"!\n\n📊 Результат: ${percentage}% (${correctCount}/${testAnswers.length})\n🏆 Всего правильных ответов: ${userStats.correct}\n\n✨ Попробуй и ты!`;
-    
-    const newEntry = {
-      name: category?.name || 'Категория',
-      score: percentage,
-      date: new Date().toLocaleDateString('ru-RU')
-    };
-    
-    const updatedLeaderboard = [...leaderboard, newEntry]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-    setLeaderboard(updatedLeaderboard);
-    
-    if (navigator.share) {
-      navigator.share({
-        title: 'Мой результат в Учи Слова',
-        text: text
-      }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(text);
-      setShowShareModal(true);
-      setTimeout(() => setShowShareModal(false), 3000);
-    }
-  };
-
   if (screen === 'results') {
     const correctCount = testAnswers.filter(a => a).length;
     const percentage = Math.round((correctCount / testAnswers.length) * 100);
-    const category = categories.find(c => c.id === selectedCategory);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6 flex items-center justify-center">
-        {showShareModal && (
-          <div className="fixed top-6 right-6 z-50 animate-slide-in-right">
-            <Card className="p-4 bg-green-100 border-2 border-green-400 shadow-xl">
-              <div className="flex items-center gap-2">
-                <Icon name="Check" className="text-green-600" size={20} />
-                <span className="font-semibold text-green-800">Скопировано в буфер!</span>
-              </div>
-            </Card>
-          </div>
-        )}
-        
         <div className="max-w-lg w-full">
           <Card className="p-12 text-center bg-gradient-to-br from-white to-purple-50 border-2">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mx-auto mb-6 animate-scale-in">
@@ -697,34 +608,11 @@ export default function Index() {
             <div className="text-7xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
               {percentage}%
             </div>
-            <p className="text-xl text-gray-600 mb-4">
+            <p className="text-xl text-gray-600 mb-8">
               Правильных ответов: {correctCount} из {testAnswers.length}
             </p>
-            <p className="text-sm text-gray-500 mb-8">
-              Категория: {category?.name}
-            </p>
             <Progress value={percentage} className="h-4 mb-8" />
-            <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  onClick={shareResult}
-                  className="h-14 text-base bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
-                >
-                  <Icon name="Share2" size={20} />
-                  Поделиться
-                </Button>
-                <Button
-                  onClick={() => {
-                    shareResult();
-                    goHome();
-                  }}
-                  variant="outline"
-                  className="h-14 text-base"
-                >
-                  <Icon name="Plus" size={20} />
-                  В таблицу
-                </Button>
-              </div>
+            <div className="flex flex-col gap-4">
               <Button
                 onClick={() => setScreen('study')}
                 className="h-14 text-lg bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
