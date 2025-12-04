@@ -158,6 +158,15 @@ const wordsData: Record<string, Word[]> = {
   ],
 };
 
+type Achievement = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  requirement: number;
+  unlocked: boolean;
+};
+
 type Screen = 'home' | 'study' | 'test' | 'results';
 
 export default function Index() {
@@ -170,6 +179,19 @@ export default function Index() {
   const [userStats, setUserStats] = useState({ correct: 0, total: 0 });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
+  const [showAchievement, setShowAchievement] = useState<Achievement | null>(null);
+
+  const achievements: Achievement[] = [
+    { id: 'first', name: 'Первые шаги', description: 'Ответь правильно на 1 вопрос', icon: 'Star', requirement: 1, unlocked: userStats.correct >= 1 },
+    { id: 'beginner', name: 'Новичок', description: '10 правильных ответов', icon: 'Award', requirement: 10, unlocked: userStats.correct >= 10 },
+    { id: 'learner', name: 'Ученик', description: '25 правильных ответов', icon: 'BookOpen', requirement: 25, unlocked: userStats.correct >= 25 },
+    { id: 'expert', name: 'Эксперт', description: '50 правильных ответов', icon: 'Medal', requirement: 50, unlocked: userStats.correct >= 50 },
+    { id: 'master', name: 'Мастер', description: '100 правильных ответов', icon: 'Trophy', requirement: 100, unlocked: userStats.correct >= 100 },
+    { id: 'perfectionist', name: 'Перфекционист', description: 'Пройди тест на 100%', icon: 'Sparkles', requirement: -1, unlocked: false },
+  ];
+
+  const unlockedAchievements = achievements.filter(a => a.unlocked);
+  const nextAchievement = achievements.find(a => !a.unlocked && a.requirement > 0);
 
   const levelLabels = {
     beginner: 'Начальный',
@@ -217,10 +239,23 @@ export default function Index() {
     const newAnswers = [...testAnswers, isCorrect];
     setTestAnswers(newAnswers);
 
+    let newStats = userStats;
     if (isCorrect) {
-      setUserStats({ correct: userStats.correct + 1, total: userStats.total + 1 });
+      newStats = { correct: userStats.correct + 1, total: userStats.total + 1 };
+      setUserStats(newStats);
+      
+      const justUnlocked = achievements.find(
+        a => a.requirement === newStats.correct && a.requirement > 0
+      );
+      if (justUnlocked) {
+        setTimeout(() => {
+          setShowAchievement(justUnlocked);
+          setTimeout(() => setShowAchievement(null), 4000);
+        }, 500);
+      }
     } else {
-      setUserStats({ ...userStats, total: userStats.total + 1 });
+      newStats = { ...userStats, total: userStats.total + 1 };
+      setUserStats(newStats);
     }
 
     const words = getCurrentWords();
@@ -242,6 +277,26 @@ export default function Index() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-6">
         <div className="max-w-6xl mx-auto">
+          {showAchievement && (
+            <div className="fixed top-6 right-6 z-50 animate-slide-in-right">
+              <Card className="p-6 bg-gradient-to-br from-yellow-100 to-orange-100 border-2 border-yellow-400 shadow-2xl max-w-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center animate-scale-in">
+                    <Icon name={showAchievement.icon as any} className="text-white" size={32} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon name="Sparkles" className="text-yellow-600" size={16} />
+                      <span className="text-xs font-semibold text-yellow-700 uppercase">Достижение получено!</span>
+                    </div>
+                    <h3 className="font-bold text-lg">{showAchievement.name}</h3>
+                    <p className="text-sm text-gray-600">{showAchievement.description}</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+          
           <div className="text-center mb-8 animate-fade-in">
             <h1 className="text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
               Учи Слова
@@ -326,26 +381,74 @@ export default function Index() {
           )}
 
           {userStats.total > 0 && (
-            <Card className="p-6 max-w-md mx-auto bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                    <Icon name="Trophy" className="text-white" size={24} />
+            <div className="space-y-6">
+              <Card className="p-6 max-w-md mx-auto bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                      <Icon name="Trophy" className="text-white" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Твоя статистика</h3>
+                      <p className="text-gray-600 text-sm">Общий прогресс</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg">Твоя статистика</h3>
-                    <p className="text-gray-600 text-sm">Общий прогресс</p>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                      {Math.round((userStats.correct / userStats.total) * 100)}%
+                    </div>
+                    <p className="text-sm text-gray-600">{userStats.correct}/{userStats.total}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    {Math.round((userStats.correct / userStats.total) * 100)}%
+                <Progress value={(userStats.correct / userStats.total) * 100} className="h-3 mb-4" />
+                
+                {nextAchievement && (
+                  <div className="mt-4 pt-4 border-t border-purple-200">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">До следующего достижения:</span>
+                      <span className="font-semibold text-purple-600">
+                        {nextAchievement.requirement - userStats.correct} ответов
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600">{userStats.correct}/{userStats.total}</p>
+                )}
+              </Card>
+
+              <Card className="p-6 max-w-4xl mx-auto">
+                <div className="flex items-center gap-2 mb-4">
+                  <Icon name="Award" className="text-yellow-500" size={24} />
+                  <h3 className="font-bold text-lg">Достижения</h3>
+                  <Badge variant="secondary">{unlockedAchievements.length}/{achievements.length}</Badge>
                 </div>
-              </div>
-              <Progress value={(userStats.correct / userStats.total) * 100} className="h-3" />
-            </Card>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {achievements.map((achievement) => (
+                    <Card
+                      key={achievement.id}
+                      className={`p-4 text-center transition-all ${
+                        achievement.unlocked
+                          ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300 border-2'
+                          : 'bg-gray-50 opacity-50'
+                      }`}
+                    >
+                      <div className={`w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center ${
+                        achievement.unlocked
+                          ? 'bg-gradient-to-br from-yellow-400 to-orange-400'
+                          : 'bg-gray-300'
+                      }`}>
+                        <Icon
+                          name={achievement.icon as any}
+                          className="text-white"
+                          size={32}
+                        />
+                      </div>
+                      <h4 className="font-bold text-sm mb-1">{achievement.name}</h4>
+                      <p className="text-xs text-gray-600">{achievement.description}</p>
+                    </Card>
+                  ))}
+                </div>
+              </Card>
+            </div>
           )}
         </div>
       </div>
